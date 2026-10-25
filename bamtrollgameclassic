@@ -1,0 +1,357 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 1. TẠO GUI (KÍCH THƯỚC MINI 160x310)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MyMenuMini"
+ScreenGui.ResetOnSpawn = false 
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 160, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -80, 0.5, -155)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true 
+
+-- Tiêu đề Menu
+local TitleLabel = Instance.new("TextLabel", MainFrame)
+TitleLabel.Size = UDim2.new(1, -25, 0, 25)
+TitleLabel.Position = UDim2.new(0, 8, 0, 0)
+TitleLabel.Text = "Menu Bám & Xoay"
+TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 13
+
+-- Nút Thu nhỏ / Mở rộng (-) (+)
+local MinimizeBtn = Instance.new("TextButton", MainFrame)
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -25, 0, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+MinimizeBtn.TextSize = 16
+
+-- Danh sách cuộn chọn Target
+local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
+ScrollFrame.Size = UDim2.new(1, 0, 0.38, 0)
+ScrollFrame.Position = UDim2.new(0, 0, 0.09, 0)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 3
+
+local UIListLayout = Instance.new("UIListLayout", ScrollFrame)
+UIListLayout.Padding = UDim.new(0, 4)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 6)
+end)
+
+-- Nút 1: Bật/Tắt Bám Lưng
+local ToggleBamBtn = Instance.new("TextButton", MainFrame)
+ToggleBamBtn.Size = UDim2.new(0.9, 0, 0.1, 0)
+ToggleBamBtn.Position = UDim2.new(0.05, 0, 0.49, 0)
+ToggleBamBtn.Text = "Bám: OFF"
+ToggleBamBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+ToggleBamBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBamBtn.TextSize = 12
+ToggleBamBtn.Font = Enum.Font.SourceSansBold
+
+-- Nút 2: Bật/Tắt Xoay Vòng (1 vòng/s)
+local ToggleXoayBtn = Instance.new("TextButton", MainFrame)
+ToggleXoayBtn.Size = UDim2.new(0.9, 0, 0.1, 0)
+ToggleXoayBtn.Position = UDim2.new(0.05, 0, 0.61, 0)
+ToggleXoayBtn.Text = "Xoay: OFF"
+ToggleXoayBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+ToggleXoayBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleXoayBtn.TextSize = 12
+ToggleXoayBtn.Font = Enum.Font.SourceSansBold
+
+-- Nút 3: Tính năng Chống Dính Sát Thương (Anti-Damage)
+local ToggleAntiDmgBtn = Instance.new("TextButton", MainFrame)
+ToggleAntiDmgBtn.Size = UDim2.new(0.9, 0, 0.1, 0)
+ToggleAntiDmgBtn.Position = UDim2.new(0.05, 0, 0.73, 0)
+ToggleAntiDmgBtn.Text = "Chống ST: OFF"
+ToggleAntiDmgBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+ToggleAntiDmgBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleAntiDmgBtn.TextSize = 12
+ToggleAntiDmgBtn.Font = Enum.Font.SourceSansBold
+
+-- Nút 4: Tùy chọn Về Chỗ Cũ (ON/OFF)
+local ToggleReturnBtn = Instance.new("TextButton", MainFrame)
+ToggleReturnBtn.Size = UDim2.new(0.9, 0, 0.1, 0)
+ToggleReturnBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
+ToggleReturnBtn.Text = "Về chỗ cũ: ON"
+ToggleReturnBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+ToggleReturnBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleReturnBtn.TextSize = 12
+ToggleReturnBtn.Font = Enum.Font.SourceSansBold
+
+-- LOGIC THU NHỎ / MỞ RỘNG
+local isMinimized = false
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        ScrollFrame.Visible = false
+        ToggleBamBtn.Visible = false
+        ToggleXoayBtn.Visible = false
+        ToggleAntiDmgBtn.Visible = false
+        ToggleReturnBtn.Visible = false
+        MinimizeBtn.Text = "+"
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 25), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    else
+        MinimizeBtn.Text = "-"
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 310), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true, function()
+            if not isMinimized then
+                ScrollFrame.Visible = true
+                ToggleBamBtn.Visible = true
+                ToggleXoayBtn.Visible = true
+                ToggleAntiDmgBtn.Visible = true
+                ToggleReturnBtn.Visible = true
+            end
+        end)
+    end
+end)
+
+-- 2. BIẾN TRẠNG THÁI & LƯU TÍNH NĂNG
+local targetPlayer = nil
+local lastAttacker = nil -- Lưu trữ kẻ vừa đánh mình
+local isBamEnabled = false
+local isXoayEnabled = false
+local isAntiDmgEnabled = false
+local isReturnToOldPos = true 
+
+local originalCFrame = nil 
+local lastHealth = 100
+local isSafetyRetreating = false 
+
+-- Hàm reset trạng thái khi Target thoát game
+local function ResetTargetState()
+    targetPlayer = nil
+    isBamEnabled = false
+    isXoayEnabled = false
+    
+    ToggleBamBtn.Text = "Bám: OFF"
+    ToggleBamBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    
+    ToggleXoayBtn.Text = "Xoay: OFF"
+    ToggleXoayBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    
+    if isReturnToOldPos and originalCFrame then
+        local myChar = LocalPlayer.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            myChar.HumanoidRootPart.CFrame = originalCFrame
+        end
+    end
+    originalCFrame = nil
+end
+
+-- Bắt sự kiện người chơi thoát game
+Players.PlayerRemoving:Connect(function(player)
+    if targetPlayer and player == targetPlayer then
+        ResetTargetState()
+    end
+end)
+
+-- Hàm cập nhật danh sách người chơi (ƯU TIÊN KẺ ĐÁNH MÌNH LÊN ĐẦU)
+local function RefreshList()
+    for _, child in pairs(ScrollFrame:GetChildren()) do 
+        if child:IsA("TextButton") then child:Destroy() end 
+    end
+    
+    local playerList = Players:GetPlayers()
+    
+    -- Lọc bỏ bản thân
+    local filteredList = {}
+    for _, p in pairs(playerList) do
+        if p ~= LocalPlayer then
+            table.insert(filteredList, p)
+        end
+    end
+    
+    -- Sắp xếp: Kẻ vừa đánh mình (lastAttacker) sẽ đứng đầu tiên
+    table.sort(filteredList, function(a, b)
+        if lastAttacker then
+            if a == lastAttacker then return true end
+            if b == lastAttacker then return false end
+        end
+        return a.Name < b.Name
+    end)
+    
+    -- Hiển thị ra giao diện
+    for _, player in pairs(filteredList) do
+        local btn = Instance.new("TextButton", ScrollFrame)
+        btn.Size = UDim2.new(0.92, 0, 0, 24)
+        
+        -- Nếu là kẻ vừa đánh mình thì đổi màu nền cam nổi bật
+        if lastAttacker and player == lastAttacker then
+            btn.Text = "⚡ " .. player.Name
+            btn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
+        else
+            btn.Text = player.Name
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        end
+        
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.TextSize = 12
+        btn.Font = Enum.Font.SourceSans
+        
+        btn.MouseButton1Click:Connect(function() 
+            targetPlayer = player 
+            if not isBamEnabled then ToggleBamBtn.Text = "Bám: " .. player.Name end
+            if not isXoayEnabled then ToggleXoayBtn.Text = "Xoay: " .. player.Name end
+        end)
+    end
+end
+
+task.spawn(function()
+    while task.wait(2) do 
+        RefreshList() 
+    end 
+end)
+
+-- Hàm lưu và phục hồi vị trí cũ
+local function SaveOrRestorePosition(enableState)
+    local myChar = LocalPlayer.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+        if enableState then
+            if not originalCFrame then
+                originalCFrame = myChar.HumanoidRootPart.CFrame
+            end
+        else
+            if not isBamEnabled and not isXoayEnabled then
+                if isReturnToOldPos and originalCFrame then
+                    myChar.HumanoidRootPart.CFrame = originalCFrame
+                end
+                originalCFrame = nil
+            end
+        end
+    end
+end
+
+-- Bắt sự kiện Nút Bám
+ToggleBamBtn.MouseButton1Click:Connect(function()
+    if not targetPlayer then return end
+    isBamEnabled = not isBamEnabled
+    if isBamEnabled then isXoayEnabled = false end
+    
+    ToggleBamBtn.BackgroundColor3 = isBamEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    ToggleXoayBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    
+    SaveOrRestorePosition(isBamEnabled)
+    ToggleBamBtn.Text = isBamEnabled and ("Bám: " .. targetPlayer.Name) or ("Bám: OFF")
+    if not isBamEnabled then ToggleXoayBtn.Text = "Xoay: OFF" end
+end)
+
+-- Bắt sự kiện Nút Xoay
+ToggleXoayBtn.MouseButton1Click:Connect(function()
+    if not targetPlayer then return end
+    isXoayEnabled = not isXoayEnabled
+    if isXoayEnabled then isBamEnabled = false end
+    
+    ToggleXoayBtn.BackgroundColor3 = isXoayEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    ToggleBamBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    
+    SaveOrRestorePosition(isXoayEnabled)
+    ToggleXoayBtn.Text = isXoayEnabled and ("Xoay: " .. targetPlayer.Name) or ("Xoay: OFF")
+    if not isXoayEnabled then ToggleBamBtn.Text = "Bám: OFF" end
+end)
+
+-- Nút Chống Sát Thương
+ToggleAntiDmgBtn.MouseButton1Click:Connect(function()
+    isAntiDmgEnabled = not isAntiDmgEnabled
+    ToggleAntiDmgBtn.BackgroundColor3 = isAntiDmgEnabled and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(255, 50, 50)
+    ToggleAntiDmgBtn.Text = isAntiDmgEnabled and "Chống ST: ON" or "Chống ST: OFF"
+end)
+
+-- Nút Về Chỗ Cũ
+ToggleReturnBtn.MouseButton1Click:Connect(function()
+    isReturnToOldPos = not isReturnToOldPos
+    ToggleReturnBtn.BackgroundColor3 = isReturnToOldPos and Color3.fromRGB(50, 200, 255) or Color3.fromRGB(150, 150, 150)
+    ToggleReturnBtn.Text = isReturnToOldPos and "Về chỗ cũ: ON" or "Về chỗ cũ: OFF"
+end)
+
+-- 3. LOGIC DI CHUYỂN, PHÁT HIỆN SÁT THƯƠNG & NGƯỜI ĐÁNH
+local orbitRadius = 4 
+
+RunService.Stepped:Connect(function()
+    local myChar = LocalPlayer.Character
+    local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    
+    if myHum and myRoot then
+        local currentHealth = myHum.Health
+        
+        -- KHI MẤT MÁU / DÍNH SÁT THƯƠNG
+        if currentHealth < lastHealth then
+            -- Tự động tìm xem người chơi nào đang ở gần mình nhất (kẻ đã gây sát thương)
+            local closestDist = 20
+            local attacker = nil
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (player.Character.HumanoidRootPart.Position - myRoot.Position).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        attacker = player
+                    end
+                end
+            end
+            
+            -- Đẩy kẻ đánh mình lên vị trí đầu bảng
+            if attacker then
+                lastAttacker = attacker
+                RefreshList()
+            end
+            
+            -- Xử lý Chống Dính Sát Thương
+            if isAntiDmgEnabled and (isBamEnabled or isXoayEnabled) and not isSafetyRetreating then
+                isSafetyRetreating = true
+                if originalCFrame then
+                    myRoot.CFrame = originalCFrame
+                end
+                task.delay(1.5, function()
+                    isSafetyRetreating = false
+                end)
+            end
+        end
+        lastHealth = currentHealth
+
+        -- KIỂM TRA TARGET CÒN TRONG GAME / SỐNG KHÔNG
+        if (isBamEnabled or isXoayEnabled) then
+            if not targetPlayer or not targetPlayer.Parent or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                ResetTargetState()
+                return
+            end
+
+            -- LOGIC BÁM HOẶC XOAY
+            if not isSafetyRetreating then
+                local targetRoot = targetPlayer.Character.HumanoidRootPart
+                
+                for _, part in pairs(myChar:GetChildren()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+                
+                myRoot.AssemblyLinearVelocity = Vector3.zero
+                myRoot.AssemblyAngularVelocity = Vector3.zero
+                
+                if isBamEnabled then
+                    local offset = 2.0 + (math.sin(os.clock() * 15) * 1.0)
+                    myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, offset)
+                elseif isXoayEnabled then
+                    local angle = os.clock() * (math.pi * 2) 
+                    local offsetX = math.cos(angle) * orbitRadius
+                    local offsetZ = math.sin(angle) * orbitRadius
+                    local newPos = targetRoot.Position + Vector3.new(offsetX, 0, offsetZ)
+                    myRoot.CFrame = CFrame.new(newPos, targetRoot.Position)
+                end
+            end
+        end
+    end
+end)
